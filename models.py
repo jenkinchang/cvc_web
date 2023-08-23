@@ -48,8 +48,6 @@ class MoneyFlow(SQLModel, table=True):
     """
     实际流水
 
-    记录方
-
     现金流水证明
 
     """
