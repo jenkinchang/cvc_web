@@ -1,5 +1,5 @@
 from sqlmodel import SQLModel, create_engine, Session
-from .models import BankAccountRole, BankAccount
+from .models import AccountRole, BankAccount
 
 sqlite_file_name = "database.db"
 sqlite_url = f"sqlite:///{sqlite_file_name}"
@@ -13,15 +13,15 @@ def create_db_and_tables():
 
 def create_default_data():
     with Session(engine) as session:
-        内部 = BankAccountRole(name="内部")
-        公司 = BankAccountRole(name="公司")
-        公账 = BankAccountRole(name="公账")
-        财务 = BankAccountRole(name="财务")
-        员工 = BankAccountRole(name="员工")
-        外部 = BankAccountRole(name="外部")
-        达人 = BankAccountRole(name="达人")
-        客户 = BankAccountRole(name="客户")
-        其他 = BankAccountRole(name="其他")
+        内部 = AccountRole(name="内部")
+        公司 = AccountRole(name="公司")
+        公账 = AccountRole(name="公账")
+        财务 = AccountRole(name="财务")
+        员工 = AccountRole(name="员工")
+        外部 = AccountRole(name="外部")
+        达人 = AccountRole(name="达人")
+        客户 = AccountRole(name="客户")
+        其他 = AccountRole(name="其他")
 
         """
         - 内部

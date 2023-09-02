@@ -1,7 +1,7 @@
 from sqlmodel import Session
 
 from .database import engine, create_db_and_tables, create_default_data
-from .models import MoneyFlow, MoneyBill, MoneyDetail
+from .models import *
 
 
 def main():
