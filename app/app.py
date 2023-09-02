@@ -6,7 +6,7 @@ from .models import *
 
 def main():
     create_db_and_tables()
-    # create_default_data()
+    create_default_data()
 
 
 if __name__ == "__main__":
