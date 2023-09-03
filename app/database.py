@@ -1,5 +1,5 @@
-from sqlmodel import SQLModel, create_engine, Session
-from .models import AccountRole, BankAccount, Account
+from sqlmodel import SQLModel, create_engine, Session, select
+from .models import *
 
 sqlite_file_name = "database.db"
 sqlite_url = f"sqlite:///{sqlite_file_name}"
@@ -92,9 +92,17 @@ def create_default_data():
         )
 
         公司 = Account(name="海外创作者联盟", role=公账, bank_accounts=[兴业公账, 农行公账])
-        朱雀财务 = Account(name="朱雀财务", role=财务, bank_accounts=[朱雀微信, 朱雀支付宝, 朱雀国行卡, 朱雀兴业卡, 朱雀招行卡])
+        朱雀财务 = Account(
+            name="朱雀财务", role=财务, bank_accounts=[朱雀微信, 朱雀支付宝, 朱雀国行卡, 朱雀兴业卡, 朱雀招行卡]
+        )
 
         session.add(公司)
         session.add(朱雀财务)
 
         session.commit()
+
+
+# def create_test_data():
+#     with Session(engine) as session:
+#         # 客户合并打款 = MoneyFlow(amount=25000, )
+#         ...

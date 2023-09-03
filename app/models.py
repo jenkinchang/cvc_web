@@ -1,7 +1,8 @@
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from datetime import datetime, date
 from typing import Optional, List, Dict
-from pydantic import condecimal
+
+from pydantic import condecimal, validator
 from sqlmodel import SQLModel, Field, Relationship
 
 
@@ -65,8 +66,25 @@ class Account(SQLModel, table=True):
 
 
 class MoneyFlowDetail(SQLModel, table=True):
+    """
+    细分流水
+
+    id: Optional[int]
+    name: Optional[str]
+
+    amount: Decimal = 0  # 细分交易额
+
+    # 关联实际流水
+    money_flow: Optional["MoneyFlow"]
+
+    # 关联账单
+    bill: Optional["MoneyBill"]
+    """
+
     id: Optional[int] = Field(default=None, primary_key=True)
     name: Optional[str] = Field(default=None)
+
+    amount: condecimal(max_digits=16, decimal_places=2) = Field(default=0)  # 细分流水
 
     # 关联实际流水
     money_flow_id: Optional[int] = Field(foreign_key="moneyflow.id")
@@ -76,11 +94,40 @@ class MoneyFlowDetail(SQLModel, table=True):
     bill_id: Optional[int] = Field(foreign_key="moneybill.id")
     bill: Optional["MoneyBill"] = Relationship(back_populates="flow_details")
 
+    @validator("amount", pre=True, always=True)
+    def amount_validator(cls, value):
+        """
+        金额设为两位小数且检测是否大于0
+        """
+        if isinstance(value, (float, int)):
+            if value < Decimal("0.0"):
+                raise ValueError("Amount must be greater than or equal to 0")
+            return Decimal(value).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        return value
+
 
 # 财务基本表
 class MoneyFlow(SQLModel, table=True):
     """
     实际流水
+
+    id: Optional[int]
+    name: Optional[str]
+
+    time: Optional[datetime]  # 交易时间
+    msg_public: Optional[str]  # 银行摘要
+    msg_bank: Optional[str]  # 银行用途
+    msg_inside: Optional[str]  # 内部备注
+    bank_flow_id: Optional[str]  # 银行流水号
+
+    amount: condecimal | int | float  # 交易额
+
+    # 关联银行账号
+    bank_account_out: Optional[BankAccount]
+    bank_account_in: Optional[BankAccount]
+
+    # 关联细分流水
+    flow_details: List["MoneyFlowDetail"]
     """
 
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -92,22 +139,39 @@ class MoneyFlow(SQLModel, table=True):
     msg_inside: Optional[str] = Field(default=None)  # 内部备注
     bank_flow_id: Optional[str] = Field(default=None)  # 银行流水号
 
-    amount: condecimal(max_digits=16, decimal_places=2) = Field(default=0)  # 交易额
+    amount: condecimal(max_digits=16, decimal_places=2) = Field(
+        default=0
+    )  # 实际交易额
 
     # 关联银行账号
-    bank_account_out_id: Optional[str] = Field(default=None, foreign_key="bankaccount.id")
-    bank_account_in_id: Optional[str] = Field(default=None, foreign_key="bankaccount.id")
+    bank_account_out_id: Optional[str] = Field(
+        default=None, foreign_key="bankaccount.id"
+    )
+    bank_account_in_id: Optional[str] = Field(
+        default=None, foreign_key="bankaccount.id"
+    )
     bank_account_out: Optional[BankAccount] = Relationship(
         back_populates="flows_out",
-        sa_relationship_kwargs={"foreign_keys": 'MoneyFlow.bank_account_out_id'},
+        sa_relationship_kwargs={"foreign_keys": "MoneyFlow.bank_account_out_id"},
     )
     bank_account_in: Optional[BankAccount] = Relationship(
         back_populates="flows_in",
-        sa_relationship_kwargs={"foreign_keys": 'MoneyFlow.bank_account_in_id'},
+        sa_relationship_kwargs={"foreign_keys": "MoneyFlow.bank_account_in_id"},
     )
 
     # 关联细分流水
     flow_details: List["MoneyFlowDetail"] = Relationship(back_populates="money_flow")
+
+    @validator("amount", pre=True, always=True)
+    def amount_validator(cls, value):
+        """
+        金额设为两位小数且检测是否大于0
+        """
+        if isinstance(value, (float, int)):
+            if value < Decimal("0.0"):
+                raise ValueError("Amount must be greater than or equal to 0")
+            return Decimal(value).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        return value
 
 
 class MoneyBillDetail(SQLModel, table=True):
