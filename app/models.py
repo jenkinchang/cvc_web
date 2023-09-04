@@ -29,6 +29,23 @@ class AccountRole(SQLModel, table=True):
 
 
 class BankAccount(SQLModel, table=True):
+    """
+    银行账户
+
+    id: int
+    name: str
+
+    bank_account_num: str  # 银行账号
+    bank_account_name: str  # 银行户名
+    bank: str  # 开户行全称
+    bank_short: str  # 开户行简称
+
+    account: Account  # 结算人
+
+    flows_out: List["MoneyFlow"]  # 付款流水
+    flows_in: List["MoneyFlow"]  # 收款流水
+    """
+
     id: Optional[int] = Field(default=None, primary_key=True)
     name: Optional[str] = Field(default=None)
 
@@ -37,7 +54,7 @@ class BankAccount(SQLModel, table=True):
     bank: Optional[str]  # 开户行全称
     bank_short: Optional[str]  # 开户行简称
 
-    bank_account_num: Optional[str] = Field(foreign_key="account.id")
+    account_id: Optional[str] = Field(foreign_key="account.id")
     account: Optional["Account"] = Relationship(back_populates="bank_accounts")
 
     flows_out: List["MoneyFlow"] = Relationship(
@@ -53,6 +70,14 @@ class BankAccount(SQLModel, table=True):
 class Account(SQLModel, table=True):
     """
     结算人
+
+    id: int
+    name: str
+
+    role: AccountRole
+
+    bank_accounts: List[BankAccount]
+    bill_details: List[MoneyBillDetail]
     """
 
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -84,7 +109,8 @@ class MoneyFlowDetail(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: Optional[str] = Field(default=None)
 
-    amount: condecimal(max_digits=16, decimal_places=2) = Field(default=0)  # 细分流水
+    # 细分交易额
+    amount: condecimal(max_digits=16, decimal_places=2) = Field(default=0)
 
     # 关联实际流水
     money_flow_id: Optional[int] = Field(foreign_key="moneyflow.id")
@@ -139,9 +165,8 @@ class MoneyFlow(SQLModel, table=True):
     msg_inside: Optional[str] = Field(default=None)  # 内部备注
     bank_flow_id: Optional[str] = Field(default=None)  # 银行流水号
 
-    amount: condecimal(max_digits=16, decimal_places=2) = Field(
-        default=0
-    )  # 实际交易额
+    # 实际交易额
+    amount: condecimal(max_digits=16, decimal_places=2) = Field(default=0)
 
     # 关联银行账号
     bank_account_out_id: Optional[str] = Field(
@@ -175,8 +200,22 @@ class MoneyFlow(SQLModel, table=True):
 
 
 class MoneyBillDetail(SQLModel, table=True):
+    """
+    各方应结表
+
+    id: int
+    name: str
+
+    # 关联结算人
+    account: Account
+    # 关联结算单
+    bill: MoneyBill
+    """
+
     id: Optional[int] = Field(default=None, primary_key=True)
     name: Optional[str] = Field(default=None)
+
+    amount: condecimal(max_digits=16, decimal_places=2) = Field(default=0)
 
     # 关联结算人
     account_id: Optional[str] = Field(default=None, foreign_key="account.id")
@@ -185,8 +224,32 @@ class MoneyBillDetail(SQLModel, table=True):
     bill_id: Optional[str] = Field(default=None, foreign_key="moneybill.id")
     bill: Optional["MoneyBill"] = Relationship(back_populates="bill_details")
 
+    @validator("amount", pre=True, always=True)
+    def amount_validator(cls, value):
+        """
+        金额设为两位小数且检测是否大于0
+        """
+        if isinstance(value, (float, int)):
+            return Decimal(value).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        return value
+
 
 class MoneyBill(SQLModel, table=True):
+    """
+    结算单
+
+    id: int
+    name: str
+
+    type: str
+    month_period: date
+
+    # 关联细分流水
+    flow_details: List["MoneyFlowDetail"]
+    # 关联各方应结表
+    bill_details: List["MoneyBillDetail"]
+    """
+
     id: Optional[int] = Field(default=None, primary_key=True)
     name: Optional[str] = Field(default=None)
 
